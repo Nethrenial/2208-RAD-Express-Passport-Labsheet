@@ -2,8 +2,6 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // importing packages
-import path from "path";
-import { fileURLToPath } from "url";
 import express from "express";
 import engine from "express-engine-jsx";
 import cookieParser from "cookie-parser";
@@ -16,9 +14,6 @@ import { localStrategy } from "./auth/index.js";
 
 // importing routes
 import { authRouter, homeRouter } from "./routes/index.js";
-
-// __dirname alternative
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // creating the express application
 const app = express();
@@ -57,7 +52,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // setup static file serving
-app.use(express.static(path.resolve(__dirname, "public")));
+app.use(express.static("public"));
 //setup parsing form data
 app.use(express.urlencoded({ extended: true }));
 // setup parsing cookies
