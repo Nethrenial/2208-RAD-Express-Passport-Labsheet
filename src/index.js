@@ -6,25 +6,46 @@ import express from "express";
 import engine from "express-engine-jsx";
 import cookieParser from "cookie-parser";
 import session from "express-session";
-import connectSqlite3 from "connect-sqlite3";
+import MongoStore from "connect-mongo";
 import passport from "passport";
+import compression from "compression";
+//importing live reloading
+import { createServer as createLiveReloadServer } from "livereload";
+import connectLiveReload from "connect-livereload";
 
 // importing auth
 import { localStrategy } from "./auth/index.js";
-
+// alternative for __dirname
+import path from "path";
+import * as url from "url";
 // importing routes
 import { authRouter, homeRouter } from "./routes/index.js";
 
+const __dirname = url.fileURLToPath(new URL(".", import.meta.url));
+
+//create live relaod server
+const liveReloadServer = createLiveReloadServer();
+liveReloadServer.server.once("connection", () => {
+  setTimeout(() => {
+    liveReloadServer.refresh("/");
+  }, 100);
+});
+
 // creating the express application
 const app = express();
+app.use(compression());
 
-// session store
-const SQLiteStore = connectSqlite3(session);
+if (process.env.ENV_MODE == "dev") {
+  app.use(connectLiveReload());
+}
 
 //setup session management
 app.use(
   session({
-    store: new SQLiteStore({ db: "sessionsDB.db" }),
+    store: MongoStore.create({
+      dbName: "events-db",
+      mongoUrl: process.env.DATABASE_URL,
+    }),
     secret: process.env.SESSION_SECRET || "ohNoIforgotToAddASecret",
     saveUninitialized: true,
     cookie: {
@@ -33,9 +54,7 @@ app.use(
     resave: true,
   })
 );
-
 //setup passport
-
 passport.use(localStrategy);
 passport.serializeUser((user, done) => {
   done(null, {
@@ -43,22 +62,19 @@ passport.serializeUser((user, done) => {
     password: undefined,
   });
 });
-
-passport.deserializeUser((userObj, done) => {
-  done(null, userObj);
+passport.deserializeUser((user, done) => {
+  done(null, user);
 });
-
 app.use(passport.initialize());
 app.use(passport.session());
-
 // setup static file serving
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "../public")));
 //setup parsing form data
 app.use(express.urlencoded({ extended: true }));
 // setup parsing cookies
 app.use(cookieParser());
 // setup render engine
-app.set("views", "./views");
+app.set("views", path.resolve(__dirname, "views"));
 app.engine("jsx", engine);
 app.set("view engine", "jsx");
 

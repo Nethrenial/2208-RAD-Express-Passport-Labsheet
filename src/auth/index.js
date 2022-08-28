@@ -11,7 +11,7 @@ export const localStrategy = new LocalStrategy(
     if (!user) {
       return done(null, false);
     }
-    const passwordsMatch = await bcrypt.compare(password, user.password);
+    const passwordsMatch = await bcrypt.compare(password, user.passwordHash);
     if (!passwordsMatch) {
       return done(null, false);
     }
